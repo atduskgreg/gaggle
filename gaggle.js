@@ -1,10 +1,24 @@
-Gaggle = function(){
-  this.results = [];
-  this.expectedPages = 0;
+GResult = function(resultData){
+  this.title = resultData.title;
+  this.url = resultData.unescapedUrl;
+  this.domain = resultData.visibleUrl;
+};
+    
+Gaggle = {
+  results : [],
+  expectedPages : 0,
   
-  search : function(q, p, callback){
-    var currentPage = p;
-    var rootUrl = "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&start="+p+"&q=";
+  processSearchResultsPage : function(data){
+    Gaggle.moreResultsUrl = data.responseData.cursor.moreResultsUrl;
+    for (i = 0; i < data.responseData.results.length; i++){
+      Gaggle.results.push(new GResult(data.responseData.results[i]));      
+    };
+  },
+  
+  submitQuery : function(q, callback, type, p){
+    var currentPage = p || 0;
+    var queryType = type || "web";
+    var rootUrl = "http://ajax.googleapis.com/ajax/services/search/"+queryType+"?v=1.0&start="+currentPage+"&q=";
     $.getJSON(rootUrl + q + "&callback=?",function(data){
       if(data.responseData){
         Gaggle.expectedPages = Math.ceil(data.responseData.cursor.estimatedResultCount / 4);
@@ -21,7 +35,7 @@ Gaggle = function(){
       }
       
       if(currentPage + 1 < Gaggle.expectedPages){
-        Gaggle.search(q, (currentPage + 1), callback);
+        Gaggle.submitQuery(q, callback, queryType, (currentPage + 1));
       }
       else{
         callback(Gaggle.results);
